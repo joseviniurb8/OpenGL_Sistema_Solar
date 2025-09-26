@@ -1,1 +1,1 @@
-# Sistema-Solar--OpenGL
+# Sistema Solar-OpenGL
