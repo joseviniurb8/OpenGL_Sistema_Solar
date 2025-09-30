@@ -91,7 +91,7 @@ void initLighting() {
     glEnable(GL_LIGHT0);
 
     // Ambiente global quase zero (lado noturno bem escuro)
-    GLfloat globalAmbient[] = {0.06f, 0.06f, 0.06f, 1.0f};
+    GLfloat globalAmbient[] = {0.3f, 0.3f, 0.3f, 1.0f};
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, globalAmbient);
 
     // Espectro do Sol (branco)
@@ -101,9 +101,9 @@ void initLighting() {
     glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
 
     // Atenuação ~ 1/(kc + kq*d^2) (ajuste fino conforme desejar)
-    glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.50f);
+    glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.70f);
     glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION,   0.00f);
-    glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION,0.0001f);
+    glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION,0.001f);
 }
 
 // Gerar estrelas numa esfera
@@ -202,7 +202,7 @@ void display() {
     // Desenhar órbitas (opcional)
     if (showOrbits) {
         glDisable(GL_LIGHTING);
-        glColor3f(0.5f, 0.5f, 0.5f);
+        glColor3f(1.0f, 1.0f, 1.0f);
         int segments = 800;
         for(int i=0; i<8; i++) {
             glBegin(GL_LINE_LOOP);
@@ -238,12 +238,12 @@ void display() {
             glColor3f(1.0f, 1.0f, 1.0f); // não tingir a textura
 
             GLfloat matDiffuse[]  = {1.0f, 1.0f, 1.0f, 1.0f};
-            GLfloat matAmbient[]  = {0.30f, 0.30f, 0.30f, 1.0f}; // leve fill light
-            GLfloat matSpecular[] = {0.18f, 0.18f, 0.18f, 1.0f}; // brilho sutil
+            GLfloat matAmbient[]  = {0.60f, 0.60f, 0.60f, 1.0f}; // leve fill light
+            GLfloat matSpecular[] = {0.50f, 0.50, 0.50, 1.0f}; // brilho sutil
             glMaterialfv(GL_FRONT, GL_AMBIENT,  matAmbient);
             glMaterialfv(GL_FRONT, GL_DIFFUSE,  matDiffuse);
             glMaterialfv(GL_FRONT, GL_SPECULAR, matSpecular);
-            glMaterialf (GL_FRONT, GL_SHININESS, 12.0f);
+            glMaterialf (GL_FRONT, GL_SHININESS, 25.0f);
 
             glEnable(GL_TEXTURE_2D);
             glBindTexture(GL_TEXTURE_2D, planetTextures[i]);
@@ -281,15 +281,15 @@ void init(){
     initStars();
 
     // Texturas
-    sunTexture       = loadTexture("textures/sun.png", true); // clamp evita halo na borda
-    planetTextures[0]= loadTexture("textures/mercury.png");
-    planetTextures[1]= loadTexture("textures/venus.png");
-    planetTextures[2]= loadTexture("textures/earth.png");
-    planetTextures[3]= loadTexture("textures/mars.png");
-    planetTextures[4]= loadTexture("textures/jupiter.png");
-    planetTextures[5]= loadTexture("textures/saturn.png");
-    planetTextures[6]= loadTexture("textures/uranus.png");
-    planetTextures[7]= loadTexture("textures/neptune.png");
+    sunTexture       = loadTexture("textures/sun.jpg", true); // clamp evita halo na borda
+    planetTextures[0]= loadTexture("textures/mercury.jpg");
+    planetTextures[1]= loadTexture("textures/venus.jpg");
+    planetTextures[2]= loadTexture("textures/earth.jpg");
+    planetTextures[3]= loadTexture("textures/mars.jpg");
+    planetTextures[4]= loadTexture("textures/jupiter.jpg");
+    planetTextures[5]= loadTexture("textures/saturn.jpg");
+    planetTextures[6]= loadTexture("textures/uranus.jpg");
+    planetTextures[7]= loadTexture("textures/neptune.jpg");
 }
 
 void update(int value) {
