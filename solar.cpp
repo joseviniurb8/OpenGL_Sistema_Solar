@@ -85,22 +85,25 @@ GLuint loadTexture(const char* filename, bool clampToEdge = false) {
     return texID;
 }
 
-// Inicializar iluminação
+// -------------------- Iluminação --------------------
 void initLighting() {
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
 
-    GLfloat lightAmbient[]  = {0.05f,0.05f,0.05f,1.0f};
-    GLfloat lightDiffuse[]  = {1.0f,1.0f,1.0f,1.0f};
-    GLfloat lightSpecular[] = {1.0f,1.0f,1.0f,1.0f};
+    // Ambiente global quase zero (lado noturno bem escuro)
+    GLfloat globalAmbient[] = {0.06f, 0.06f, 0.06f, 1.0f};
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, globalAmbient);
 
-    glLightfv(GL_LIGHT0,GL_AMBIENT,  lightAmbient);
-    glLightfv(GL_LIGHT0,GL_DIFFUSE,  lightDiffuse);
-    glLightfv(GL_LIGHT0,GL_SPECULAR, lightSpecular);
+    // Espectro do Sol (branco)
+    GLfloat lightDiffuse[]  = {1.0f, 1.0f, 1.0f, 1.0f};
+    GLfloat lightSpecular[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    glLightfv(GL_LIGHT0, GL_DIFFUSE,  lightDiffuse);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, lightSpecular);
 
-    glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.8f);
-    glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION,   0.01f);
-    glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION,0.002f);
+    // Atenuação ~ 1/(kc + kq*d^2) (ajuste fino conforme desejar)
+    glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.50f);
+    glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION,   0.00f);
+    glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION,0.0001f);
 }
 
 // Gerar estrelas numa esfera
@@ -177,7 +180,7 @@ void display() {
     // Céu estrelado primeiro
     drawStars();
 
-    // Luz no centro (vinda do Sol)
+    // Luz no centro (vinda do Sol) — define SEMPRE após gluLookAt
     GLfloat lightPos[] = {0.0f,0.0f,0.0f,1.0f};
     glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
 
@@ -231,6 +234,17 @@ void display() {
 
             glRotatef(planetRotation[i], 0, 1, 0);
 
+            // --- materiais + textura (modulados pela luz) ---
+            glColor3f(1.0f, 1.0f, 1.0f); // não tingir a textura
+
+            GLfloat matDiffuse[]  = {1.0f, 1.0f, 1.0f, 1.0f};
+            GLfloat matAmbient[]  = {0.30f, 0.30f, 0.30f, 1.0f}; // leve fill light
+            GLfloat matSpecular[] = {0.18f, 0.18f, 0.18f, 1.0f}; // brilho sutil
+            glMaterialfv(GL_FRONT, GL_AMBIENT,  matAmbient);
+            glMaterialfv(GL_FRONT, GL_DIFFUSE,  matDiffuse);
+            glMaterialfv(GL_FRONT, GL_SPECULAR, matSpecular);
+            glMaterialf (GL_FRONT, GL_SHININESS, 12.0f);
+
             glEnable(GL_TEXTURE_2D);
             glBindTexture(GL_TEXTURE_2D, planetTextures[i]);
 
@@ -259,7 +273,9 @@ void init(){
     glClearColor(0,0,0,1);          // alpha = 1
     glEnable(GL_DEPTH_TEST);
 
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    // Combine textura com iluminação; normaliza normais após escalas/rotes
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    glEnable(GL_NORMALIZE);
 
     // Céu
     initStars();
