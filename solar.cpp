@@ -10,12 +10,11 @@
 #endif
 
 float t = 0.0f;
-bool paused = false; // controle de pausa
-bool showOrbits = false; // controle das órbitas
-
+bool paused = false;       // controle de pausa
+bool showOrbits = false;   // controle das órbitas
 
 // Configuração das órbitas e planetas
-float orbitRadii[] = {16.0f, 20.0f, 24.0f, 28.0f, 35.0f, 48.0f, 60.0f, 72.0f};
+float orbitRadii[]  = {16.0f, 20.0f, 24.0f, 28.0f, 35.0f, 48.0f, 60.0f, 72.0f};
 float orbitSpeeds[] = {0.6f, 0.55f, 0.5f, 0.45f, 0.3f, 0.25f, 0.2f, 0.15f};
 
 // Tamanhos dos planetas
@@ -27,6 +26,7 @@ float rotationSpeed[8]  = {2.0f,1.8f,1.6f,1.5f,1.2f,1.1f,1.0f,0.9f};
 
 // IDs das texturas
 GLuint planetTextures[8];
+GLuint sunTexture;
 
 // Câmera
 float camAngle = 0.0f;
@@ -34,10 +34,14 @@ float camDistance = 90.0f;
 float camHeight = 5.0f;
 float camAngleManual = 0.0f;
 
-// Função de carregamento de textura com stb_image
-GLuint loadTexture(const char* filename) {
-    int width, height, nrChannels;
-    unsigned char* data = stbi_load(filename, &width, &height, &nrChannels, 0);
+// ======================================================
+// Carregar textura (seguro): força RGBA, corrige alinhamento e
+// permite optar por CLAMP_TO_EDGE (para o Sol).
+// ======================================================
+GLuint loadTexture(const char* filename, bool clampToEdge = false) {
+    int w, h, n;
+    stbi_set_flip_vertically_on_load(1);
+    unsigned char* data = stbi_load(filename, &w, &h, &n, 4);
 
     if (!data) {
         printf("Erro ao carregar textura: %s\n", filename);
@@ -48,15 +52,21 @@ GLuint loadTexture(const char* filename) {
     glGenTextures(1, &texID);
     glBindTexture(GL_TEXTURE_2D, texID);
 
-    GLenum format = (nrChannels == 4) ? GL_RGBA : GL_RGB;
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    gluBuild2DMipmaps(GL_TEXTURE_2D, format, width, height, format, GL_UNSIGNED_BYTE, data);
-
-    // Parâmetros
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // filtros
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // wrap
+    GLint wrap = clampToEdge ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
+
+    // upload + mipmaps
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA8, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    // (alternativa moderna seria glGenerateMipmap)
 
     stbi_image_free(data);
     return texID;
@@ -71,13 +81,13 @@ void initLighting() {
     GLfloat lightDiffuse[]  = {1.0f,1.0f,1.0f,1.0f};
     GLfloat lightSpecular[] = {1.0f,1.0f,1.0f,1.0f};
 
-    glLightfv(GL_LIGHT0,GL_AMBIENT, lightAmbient);
-    glLightfv(GL_LIGHT0,GL_DIFFUSE, lightDiffuse);
+    glLightfv(GL_LIGHT0,GL_AMBIENT,  lightAmbient);
+    glLightfv(GL_LIGHT0,GL_DIFFUSE,  lightDiffuse);
     glLightfv(GL_LIGHT0,GL_SPECULAR, lightSpecular);
 
     glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.8f);
-    glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, 0.01f);
-    glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, 0.002f);
+    glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION,   0.01f);
+    glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION,0.002f);
 }
 
 // Desenhar anel de Saturno
@@ -109,17 +119,24 @@ void display() {
     float camY = camHeight;
     gluLookAt(camX, camY, camZ, 0, 0, 0, 0, 1, 0);
 
-    // Luz no centro
+    // Luz no centro (vinda do Sol)
     GLfloat lightPos[] = {0.0f,0.0f,0.0f,1.0f};
-    glLightfv(GL_LIGHT0,GL_POSITION,lightPos);
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
 
-    // Sol
-    glDisable(GL_LIGHTING);
-    glColor3f(1.0f,1.0f,0.0f);
-    glutSolidSphere(10.0,50,50);
+    //Sol
+    glDisable(GL_LIGHTING);            // o Sol emite luz; sem sombreamento
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, sunTexture);
+
+    GLUquadric* sun = gluNewQuadric();
+    gluQuadricTexture(sun, GL_TRUE);
+    gluQuadricNormals(sun, GLU_SMOOTH);
+    gluSphere(sun, 10.0, 50, 50);
+    gluDeleteQuadric(sun);
+
+    glDisable(GL_TEXTURE_2D);
     glEnable(GL_LIGHTING);
 
-    // Desenhar órbitas
     if (showOrbits) {
         glDisable(GL_LIGHTING);
         glColor3f(0.5f, 0.5f, 0.5f);
@@ -137,27 +154,29 @@ void display() {
         glEnable(GL_LIGHTING);
     }
 
+    // Planetas
     for(int i=0; i<8; i++){
-        float angle = t*orbitSpeeds[i];
-        float x = orbitRadii[i]*cos(angle);
-        float z = orbitRadii[i]*sin(angle);
+        float angle = t * orbitSpeeds[i];
+        float x = orbitRadii[i] * cos(angle);
+        float z = orbitRadii[i] * sin(angle);
 
         glPushMatrix();
             glTranslatef(x, 0, z);
 
-            if(i==5){
+            if(i==5) { // Saturno: anel
                 glRotatef(30, 1, 0, 0);
                 drawRing(planetSizes[i]*1.3f, planetSizes[i]*1.6f);
                 glRotatef(-30, 1, 0, 0);
             }
 
-            glRotatef(planetRotation[i],0,1,0);
+            glRotatef(planetRotation[i], 0, 1, 0);
 
             glEnable(GL_TEXTURE_2D);
             glBindTexture(GL_TEXTURE_2D, planetTextures[i]);
 
             GLUquadric* quad = gluNewQuadric();
             gluQuadricTexture(quad, GL_TRUE);
+            gluQuadricNormals(quad, GLU_SMOOTH);
             gluSphere(quad, planetSizes[i], 30, 30);
             gluDeleteQuadric(quad);
 
@@ -177,11 +196,13 @@ void reshape(int w,int h){
 }
 
 void init(){
-    glClearColor(0,0,0,0);
+    glClearColor(0,0,0,1);
     glEnable(GL_DEPTH_TEST);
 
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
+    // Carregar texturas
+    sunTexture        = loadTexture("textures/sun.png", true); // clamp evita costura/halo
     planetTextures[0] = loadTexture("textures/mercury.png");
     planetTextures[1] = loadTexture("textures/venus.png");
     planetTextures[2] = loadTexture("textures/earth.png");
@@ -218,7 +239,6 @@ void keyboard(unsigned char key, int x, int y) {
         case 'd': camAngleManual += 0.05f; break;
         case 'p': paused = !paused; break;
         case 'o': showOrbits = !showOrbits; break;
-
     }
     glutPostRedisplay();
 }
