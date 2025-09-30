@@ -1,6 +1,8 @@
 #include <GL/glut.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -9,6 +11,7 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+// -------------------- Estado geral --------------------
 float t = 0.0f;
 bool paused = false;       // controle de pausa
 bool showOrbits = false;   // controle das órbitas
@@ -34,14 +37,24 @@ float camDistance = 90.0f;
 float camHeight = 5.0f;
 float camAngleManual = 0.0f;
 
+// -------------------- Estrelas (céu) --------------------
+struct Star {
+    float x, y, z;   // posição
+    float base;      // brilho base [0..1]
+    float phase;     // fase para cintilação
+};
+const int NUM_STARS = 2000;
+Star stars[NUM_STARS];
+const float STAR_RADIUS = 220.0f; // maior que as órbitas (far <= 300)
+
 // ======================================================
 // Carregar textura (seguro): força RGBA, corrige alinhamento e
 // permite optar por CLAMP_TO_EDGE (para o Sol).
 // ======================================================
 GLuint loadTexture(const char* filename, bool clampToEdge = false) {
     int w, h, n;
-    stbi_set_flip_vertically_on_load(1);
-    unsigned char* data = stbi_load(filename, &w, &h, &n, 4);
+    stbi_set_flip_vertically_on_load(1);                // evita textura invertida
+    unsigned char* data = stbi_load(filename, &w, &h, &n, 4); // força 4 canais (RGBA)
 
     if (!data) {
         printf("Erro ao carregar textura: %s\n", filename);
@@ -52,6 +65,7 @@ GLuint loadTexture(const char* filename, bool clampToEdge = false) {
     glGenTextures(1, &texID);
     glBindTexture(GL_TEXTURE_2D, texID);
 
+    // *** evita listras verticais (alinhamento de linhas) ***
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     // filtros
@@ -66,7 +80,6 @@ GLuint loadTexture(const char* filename, bool clampToEdge = false) {
     // upload + mipmaps
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA8, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    // (alternativa moderna seria glGenerateMipmap)
 
     stbi_image_free(data);
     return texID;
@@ -88,6 +101,48 @@ void initLighting() {
     glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, 0.8f);
     glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION,   0.01f);
     glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION,0.002f);
+}
+
+// Gerar estrelas numa esfera
+void initStars() {
+    srand((unsigned)time(NULL));
+    for (int i = 0; i < NUM_STARS; ++i) {
+        // amostragem uniforme na esfera
+        float u = (float)rand() / RAND_MAX;  // 0..1
+        float v = (float)rand() / RAND_MAX;  // 0..1
+        float theta = 2.0f * M_PI * u;
+        float z = 2.0f * v - 1.0f;           // -1..1
+        float r = sqrtf(1.0f - z*z);
+        float x = r * cosf(theta);
+        float y = r * sinf(theta);
+        stars[i].x = STAR_RADIUS * x;
+        stars[i].y = STAR_RADIUS * y;
+        stars[i].z = STAR_RADIUS * z;
+
+        stars[i].base  = 0.6f + 0.4f * ((float)rand() / RAND_MAX);  // 0.6..1.0
+        stars[i].phase = 20.0f * ((float)rand() / RAND_MAX);        // fase aleatória
+    }
+}
+
+// Desenhar o céu estrelado
+void drawStars() {
+    glDisable(GL_LIGHTING);
+    // não escrever no depth para não interferir nos planetas
+    glDepthMask(GL_FALSE);
+    glPointSize(1.5f);
+
+    glBegin(GL_POINTS);
+    for (int i = 0; i < NUM_STARS; ++i) {
+        // cintilação leve
+        float tw = 0.85f + 0.15f * (0.5f + 0.5f * sinf(0.6f * t + stars[i].phase));
+        float b = stars[i].base * tw;
+        glColor3f(b, b, b);
+        glVertex3f(stars[i].x, stars[i].y, stars[i].z);
+    }
+    glEnd();
+
+    glDepthMask(GL_TRUE);
+    glEnable(GL_LIGHTING);
 }
 
 // Desenhar anel de Saturno
@@ -119,12 +174,15 @@ void display() {
     float camY = camHeight;
     gluLookAt(camX, camY, camZ, 0, 0, 0, 0, 1, 0);
 
+    // Céu estrelado primeiro
+    drawStars();
+
     // Luz no centro (vinda do Sol)
     GLfloat lightPos[] = {0.0f,0.0f,0.0f,1.0f};
     glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
 
-    //Sol
-    glDisable(GL_LIGHTING);            // o Sol emite luz; sem sombreamento
+    // ----------- Sol (texturizado, “auto-iluminado”) -----------
+    glDisable(GL_LIGHTING);
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, sunTexture);
 
@@ -136,7 +194,9 @@ void display() {
 
     glDisable(GL_TEXTURE_2D);
     glEnable(GL_LIGHTING);
+    // -----------------------------------------------------------
 
+    // Desenhar órbitas (opcional)
     if (showOrbits) {
         glDisable(GL_LIGHTING);
         glColor3f(0.5f, 0.5f, 0.5f);
@@ -163,7 +223,7 @@ void display() {
         glPushMatrix();
             glTranslatef(x, 0, z);
 
-            if(i==5) { // Saturno: anel
+            if(i==5){ // Saturno: anel
                 glRotatef(30, 1, 0, 0);
                 drawRing(planetSizes[i]*1.3f, planetSizes[i]*1.6f);
                 glRotatef(-30, 1, 0, 0);
@@ -196,21 +256,24 @@ void reshape(int w,int h){
 }
 
 void init(){
-    glClearColor(0,0,0,1);
+    glClearColor(0,0,0,1);          // alpha = 1
     glEnable(GL_DEPTH_TEST);
 
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
-    // Carregar texturas
-    sunTexture        = loadTexture("textures/sun.png", true); // clamp evita costura/halo
-    planetTextures[0] = loadTexture("textures/mercury.png");
-    planetTextures[1] = loadTexture("textures/venus.png");
-    planetTextures[2] = loadTexture("textures/earth.png");
-    planetTextures[3] = loadTexture("textures/mars.png");
-    planetTextures[4] = loadTexture("textures/jupiter.png");
-    planetTextures[5] = loadTexture("textures/saturn.png");
-    planetTextures[6] = loadTexture("textures/uranus.png");
-    planetTextures[7] = loadTexture("textures/neptune.png");
+    // Céu
+    initStars();
+
+    // Texturas
+    sunTexture       = loadTexture("textures/sun.png", true); // clamp evita halo na borda
+    planetTextures[0]= loadTexture("textures/mercury.png");
+    planetTextures[1]= loadTexture("textures/venus.png");
+    planetTextures[2]= loadTexture("textures/earth.png");
+    planetTextures[3]= loadTexture("textures/mars.png");
+    planetTextures[4]= loadTexture("textures/jupiter.png");
+    planetTextures[5]= loadTexture("textures/saturn.png");
+    planetTextures[6]= loadTexture("textures/uranus.png");
+    planetTextures[7]= loadTexture("textures/neptune.png");
 }
 
 void update(int value) {
@@ -224,7 +287,6 @@ void update(int value) {
             if(planetRotation[i] > 360) planetRotation[i] -= 360;
         }
     }
-
     glutPostRedisplay();
     glutTimerFunc(16, update, 0);
 }
@@ -233,8 +295,8 @@ void keyboard(unsigned char key, int x, int y) {
     switch(key) {
         case 'Z': camDistance -= 5; if(camDistance < 10) camDistance = 10; break;
         case 'z': camDistance += 5; if(camDistance > 200) camDistance = 200; break;
-        case 'w': camHeight += 2; if(camHeight > 50) camHeight = 50; break;
-        case 's': camHeight -= 2; if(camHeight < 1) camHeight = 1; break;
+        case 'w': camHeight += 2;   if(camHeight > 50) camHeight = 50;     break;
+        case 's': camHeight -= 2;   if(camHeight < 1)  camHeight = 1;      break;
         case 'a': camAngleManual -= 0.05f; break;
         case 'd': camAngleManual += 0.05f; break;
         case 'p': paused = !paused; break;
