@@ -238,12 +238,12 @@ void display() {
             glColor3f(1.0f, 1.0f, 1.0f); // não tingir a textura
 
             GLfloat matDiffuse[]  = {1.0f, 1.0f, 1.0f, 1.0f};
-            GLfloat matAmbient[]  = {0.60f, 0.60f, 0.60f, 1.0f}; // leve fill light
-            GLfloat matSpecular[] = {0.50f, 0.50, 0.50, 1.0f}; // brilho sutil
+            GLfloat matAmbient[]  = {1.0f, 1.0f, 1.0f, 1.0f}; // leve fill light
+            GLfloat matSpecular[] = {0.8f, 0.8, 0.8, 1.0f}; // brilho sutil
             glMaterialfv(GL_FRONT, GL_AMBIENT,  matAmbient);
             glMaterialfv(GL_FRONT, GL_DIFFUSE,  matDiffuse);
             glMaterialfv(GL_FRONT, GL_SPECULAR, matSpecular);
-            glMaterialf (GL_FRONT, GL_SHININESS, 25.0f);
+            glMaterialf (GL_FRONT, GL_SHININESS, 30.0f);
 
             glEnable(GL_TEXTURE_2D);
             glBindTexture(GL_TEXTURE_2D, planetTextures[i]);
