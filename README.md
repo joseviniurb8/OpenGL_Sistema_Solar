@@ -4,7 +4,7 @@ O trabalho consiste em uma simulação tridimensional do Sistema Solar, desenvol
 
 ---
 
-##  O que o código faz
+##  O que o código faz?
 
 - Renderiza o Sistema Solar 3D, com cada planeta em rotação e translação.  
 - Utiliza curvas paramétricas para o movimento orbital dos planetas.  
