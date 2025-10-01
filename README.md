@@ -17,7 +17,11 @@ O trabalho consiste em uma simulação tridimensional do Sistema Solar, desenvol
 
 ---
 
-## Imagem do programa
+## Imagens do programa
+
+![Texto alternativo](https://github.com/joseviniurb8/OpenGL_Sistema_Solar/blob/main/images/Captura%20de%20tela%20de%202025-09-30%2021-55-50.png)
+![Texto alternativo](https://github.com/joseviniurb8/OpenGL_Sistema_Solar/blob/main/images/Captura%20de%20tela%20de%202025-09-30%2021-56-14.png)
+![Texto alternativo](https://github.com/joseviniurb8/OpenGL_Sistema_Solar/blob/main/images/Captura%20de%20tela%20de%202025-09-30%2021-56-35.png)
 
 ## Como compilar e executar
 
