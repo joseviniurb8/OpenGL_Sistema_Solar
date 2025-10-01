@@ -25,25 +25,25 @@ O trabalho consiste em uma simulação tridimensional do Sistema Solar, desenvol
 
 ## Como compilar e executar
 
-### Passo 1 – Clonar o repositório
+### Clonar o repositório
 ```bash
 git clone https://github.com/joseviniurb8/OpenGL_Sistema_Solar.git
 cd OpenGL_Sistema_Solar
 ```
 
-### Passo 2 – Verificar as Dependências
+### Verificar as Dependências
 O projeto depende de:  
 - OpenGL  
 - GLUT (FreeGLUT)
 - stb_image.h (arquivo incluído no projeto para carregar texturas)
 
-### Passo 3 – Compilar
+### Compilar
 Compile o código com o seguinte comando:
 ```bash
 g++ solar.cpp -o solar -lGL -lGLU -lglut
 ```
 
-### Passo 4 – Executar
+### Executar
 Depois de compilar, rode:
 ```bash
 ./solar
@@ -73,7 +73,7 @@ Depois de compilar, rode:
 ## Possíveis melhorias
 
 - Adicionar efeitos de luz mais realistas, como reflexões e reflexos atmosféricos.  
-- Inserir satélites naturais e outros corpos celestes como asteroides e cometas.  
+- Inserir satélites naturais e outros corpos celestes como asteroides e cometas.
 
 ---
 
