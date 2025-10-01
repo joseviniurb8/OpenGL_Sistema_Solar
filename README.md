@@ -36,13 +36,13 @@ O projeto depende de:
 ### Passo 3 – Compilar
 Compile o código com o seguinte comando:
 ```bash
-gcc main.c -o sistema_solar -lGL -lGLU -lglut -lm
+g++ solar.cpp -o solar -lGL -lGLU -lglut
 ```
 
 ### Passo 4 – Executar
 Depois de compilar, rode:
 ```bash
-./sistema_solar
+./solar
 ```
 
 ## Controles do teclado
