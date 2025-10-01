@@ -28,7 +28,6 @@ O trabalho consiste em uma simulação tridimensional do Sistema Solar, desenvol
 ### Clonar o repositório
 ```bash
 git clone https://github.com/joseviniurb8/OpenGL_Sistema_Solar.git
-cd OpenGL_Sistema_Solar
 ```
 
 ### Verificar as Dependências
